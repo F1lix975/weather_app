@@ -16,3 +16,14 @@ def print_weather_info():
 if __name__ == "__main__":
     print_weather_info()
 
+from requests.structures import CaseInsensitiveDict
+def print_geocode_location():
+    link = "https://geocoding-api.open-meteo.com/v1/search?name=Berlin&count=10&language=en&format=json"
+    data = {
+        "name": "Berlin",
+        "latitude": 52.52437,
+        "longitude": 13.41053,
+    }
+    answer = requests.get(link, params=data)
+    print(answer.text)
+    print_geocode_location()
