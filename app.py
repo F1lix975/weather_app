@@ -20,8 +20,7 @@ def print_geocode_location():
     link = "https://geocoding-api.open-meteo.com/v1/search?name=Berlin&count=10&language=en&format=json"
     data = {
         "name": "Berlin",
-        "latitude": 52.52437,
-        "longitude": 13.41053,
+
     }
     answer = requests.get(link, params=data)
     print(answer.text)
