@@ -1,5 +1,15 @@
 import requests
 import json
+import sqlite3
+connect = sqlite3.connect("worldcities.sql")
+kursor = connect.cursor()
+with open ("worldcities.sql", "r", encoding="utf-8") as file_sql:
+    skrypt_sql = file_sql.read()
+kursor.executescript(skrypt_sql)
+connect.commit()
+connect.close()
+
+
 
 
 def print_weather_info(lat, long):
@@ -36,4 +46,22 @@ def get_geo_cords(name, countryCode):
     return(first_element['latitude'], first_element['longitude'])
 if __name__ == "__main__":
     cordinates = get_geo_cords('Warsaw', 'PL')
+#def get_city():
+ #   address = "https://wikipedia.org"
+  #  another_data = {
+   # "name": "San Francisco",
+    #"latitude": 37.75,
+    #"longitude" :-122.44,
+    #"country": "US",
+    #"population": 3592294,
+    #"is_capital": False
+    #}
+    #reply = requests.get(address, params=another_data)
+    #dict_of_countries = json.loads(reply.text)
+    #print(dict_of_countries)
+#if __name__ == "__main__":
+#    get_city()
+
+
+
 
