@@ -1,28 +1,39 @@
 import requests
+import json
 
 
-def print_weather_info():
+def print_weather_info(lat, long):
     url = "https://api.open-meteo.com/v1/forecast"
     params = {
-        "latitude": 52.52,
-        "longitude": 13.41,
+        "latitude": lat,
+        "longitude": long,
         "hourly": "temperature_2m",
-        "start_date": "2026-05-13",
-        "end_date": "2026-05-13",
+        "hourly_units": "temperature_2m"
+
     }
     response = requests.get(url, params=params)
-    print(response.text)
+    another_dict = json.loads(response.text)
+    second_element = another_dict["hourly"]
+    third_element = another_dict["hourly_units"]
+    return(second_element, third_element)
+
 
 if __name__ == "__main__":
-    print_weather_info()
+    weather = print_weather_info(51.0 , 13.40)
 
-def print_geocode_location():
+def get_geo_cords(name, countryCode):
+
     link = "https://geocoding-api.open-meteo.com/v1/search?name=Berlin&count=10&language=en&format=json"
     data = {
-        "name": "Berlin",
+        "name": name,
+        "countryCode": countryCode
 
     }
     answer = requests.get(link, params=data)
-    print(answer.text)
+    data_dict = json.loads(answer.text)
+    #print(data_dict['results'])
+    first_element = data_dict['results'][0]
+    return(first_element['latitude'], first_element['longitude'])
 if __name__ == "__main__":
-    print_geocode_location()
+    cordinates = get_geo_cords('Warsaw', 'PL')
+
