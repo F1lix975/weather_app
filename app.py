@@ -1,14 +1,10 @@
 import requests
 import json
 import sqlite3
-connect = sqlite3.connect("worldcities.sql")
-kursor = connect.cursor()
-with open ("worldcities.sql", "r", encoding="utf-8") as file_sql:
-    skrypt_sql = file_sql.read()
-kursor.executescript(skrypt_sql)
-connect.commit()
-connect.close()
 
+with open ("worldcities.sql", "r", encoding="utf-8") as file:
+    skrypt_sql = file.read()
+print(skrypt_sql)
 
 
 
