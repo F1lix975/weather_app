@@ -1,12 +1,5 @@
 import requests
 import json
-import sqlite3
-con = sqlite3.connect("base.db")
-kur = con.cursor()
-
-with open ("worldcities.sql", "r", encoding="utf-8") as file:
-    skrypt_sql = file.read()
-con.close
 
 
 def print_weather_info(lat, long):

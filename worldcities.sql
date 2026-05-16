@@ -40,7 +40,7 @@ CREATE TABLE `simplemaps_worldcities_basic` (
   `capital` varchar(49) DEFAULT NULL,
   `population` int(11) DEFAULT NULL,
   `id` int(11) DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM DEFAULT CHARSET=vvutf8;
 
 --
 -- Dumping data for table `simplemaps_worldcities_basic`
