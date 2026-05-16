@@ -1,6 +1,6 @@
 import requests
 import json
-
+import sqlite3
 
 def print_weather_info(lat, long):
     url = "https://api.open-meteo.com/v1/forecast"
@@ -18,39 +18,40 @@ def print_weather_info(lat, long):
     return(second_element, third_element)
 
 
+def get_city(city, country):
+    conn = sqlite3.connect("base.db")
+    cursor = conn.cursor()
+    query = """SELECT city, lat, lng, country FROM simplemaps_worldcities_basic WHERE city = ? AND country = ?"""
+    cursor.execute(query, (city, country))
+    result = cursor.fetchone()
+    conn.close()
+    if result:
+        return("Latitude:", result[1],
+               "Longitude:", result[2])
+
+    else:
+        print("City can't be found")
+
 if __name__ == "__main__":
+    get_city('Warsaw', 'Poland')
     weather = print_weather_info(51.0 , 13.40)
 
-def get_geo_cords(name, countryCode):
 
-    link = "https://geocoding-api.open-meteo.com/v1/search?name=Berlin&count=10&language=en&format=json"
-    data = {
-        "name": name,
-        "countryCode": countryCode
+#def get_geo_cords(name, countryCode):
 
-    }
-    answer = requests.get(link, params=data)
-    data_dict = json.loads(answer.text)
-    #print(data_dict['results'])
-    first_element = data_dict['results'][0]
-    return(first_element['latitude'], first_element['longitude'])
-if __name__ == "__main__":
-    cordinates = get_geo_cords('Warsaw', 'PL')
-#def get_city():
- #   address = "https://wikipedia.org"
-  #  another_data = {
-   # "name": "San Francisco",
-    #"latitude": 37.75,
-    #"longitude" :-122.44,
-    #"country": "US",
-    #"population": 3592294,
-    #"is_capital": False
+ #   link = "https://geocoding-api.open-meteo.com/v1/search?name=Berlin&count=10&language=en&format=json"
+  #  data = {
+   #     "name": name,
+    #    "countryCode": countryCode
+
     #}
-    #reply = requests.get(address, params=another_data)
-    #dict_of_countries = json.loads(reply.text)
-    #print(dict_of_countries)
+    #answer = requests.get(link, params=data)
+   # data_dict = json.loads(answer.text)
+   # print(data_dict['results'])
+   # first_element = data_dict['results'][0]
+    #return(first_element['latitude'], first_element['longitude'])
 #if __name__ == "__main__":
-#    get_city()
+#    cordinates = get_geo_cords('Warsaw', 'PL')
 
 
 

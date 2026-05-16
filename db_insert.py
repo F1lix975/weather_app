@@ -18,7 +18,7 @@ for i, row in enumerate(rows, start=1):
             lng,
             country,
             iso2,
-            iso3,
+            iso3,vvvvvvvvvvvvvvvvvvvvv
             admin_name,
             capital,
             population,
