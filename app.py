@@ -3,6 +3,8 @@ import json
 import sqlite3
 import pandas as pd
 
+
+
 def print_weather_info(lat, long):
     url = "https://api.open-meteo.com/v1/forecast"
     params = {
