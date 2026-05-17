@@ -1,6 +1,7 @@
 import requests
 import json
 import sqlite3
+import pandas as pd
 
 def print_weather_info(lat, long):
     url = "https://api.open-meteo.com/v1/forecast"
@@ -18,22 +19,29 @@ def print_weather_info(lat, long):
     return(second_element, third_element)
 
 
-def get_city(city, country):
+def get_city(city):
+    """
+    Fuction can return every example of a city, which user would write.
+    :param city:
+    :return:
+    """
     conn = sqlite3.connect("base.db")
     cursor = conn.cursor()
-    query = """SELECT city, lat, lng, country FROM simplemaps_worldcities_basic WHERE city = ? AND country = ?"""
-    cursor.execute(query, (city, country))
-    result = cursor.fetchone()
+    query = """SELECT city, lat, lng, country, iso3 FROM simplemaps_worldcities_basic WHERE upper(city) LIKE upper('%' ||?||'%')"""
+    cursor.execute(query, (city,))
+    results = cursor.fetchall()
     conn.close()
-    if result:
-        return("Latitude:", result[1],
-               "Longitude:", result[2])
+    data_frame = pd.DataFrame(results, columns=["city", "lat", "lng", "country", "iso3"])
+    return data_frame
+def get_weather():
+    
 
-    else:
-        print("City can't be found")
+
+
+
 
 if __name__ == "__main__":
-    get_city('Warsaw', 'Poland')
+    get_city('Warsaw')
     weather = print_weather_info(51.0 , 13.40)
 
 
