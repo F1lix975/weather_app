@@ -4,6 +4,9 @@ import sqlite3
 import pandas as pd
 import streamlit as st
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
+import arrow
+from datetime import datetime
+
 st.title("Weather Forecast")
 def get_city(city):
     """
@@ -25,15 +28,17 @@ def print_weather_info(lat, lng):
         "latitude": lat,
         "longitude": lng,
         "hourly": "temperature_2m",
-        "hourly_units": "temperature_2m"
+
 
     }
     response = requests.get(url, params=params)
     another_dict = json.loads(response.text)
-    second_element = another_dict["hourly"]
-    third_element = another_dict["hourly_units"]
-    return(second_element, third_element)
-
+    second_element = another_dict["hourly"]["time"]
+    third_element = another_dict["hourly"]["temperature_2m"]
+    return second_element, third_element
+#if __name__ == "__main__":
+  #  get_city('Warsaw')
+ #     time, temp = print_weather_info(lat, lng)
 
 city = st.text_input("Write your city here")
 if city:
@@ -54,23 +59,69 @@ if city:
     )
 
     selected_rows = response.get("selected_rows", [])
-
     if selected_rows is not None and len(selected_rows) > 0:
-        st.session_state["selected_city"] = selected_rows.iloc[0]
-    if st.button("Get weather"):
-        if "selected_city" not in st.session_state:
-            st.warning("Select city")
-            st.stop()
-        city_data = st.session_state["selected_city"]
+
+        city_data = selected_rows.iloc[0]
         lat = city_data["lat"]
         long = city_data["lng"]
-        weather = print_weather_info(lat, long)
+        time, temp = print_weather_info(lat, long)
+        df_weather = pd.DataFrame({
+            "time": time,
+            "temperature": temp
+        })
         st.subheader(f"Weather Forecast for {city_data['city']}")
-        st.json(weather)
+        now_hour = datetime.utcnow().replace(minute=0, second=0, microsecond=0)
+
+        start_index = 0
+
+        for i, t in enumerate(time):
+            api_time = datetime.strptime(t, "%Y-%m-%dT%H:%M")
+
+            if api_time >= now_hour:
+                start_index = i
+                break
+
+        cols = st.columns(5)
+
+        for i, col in enumerate(cols):
+            idx = start_index + i
+
+            if idx < len(time):
+                with col:
+                    st.metric(
+                        label=time[idx][11:16],
+                        value=f"{temp[idx]} °C"
+                    )
+        selected_date = st.date_input("Choose date")
+        selected_hour = st.selectbox("Choose hour", list(range(24)))
+        dt = arrow.get(selected_date).replace(hour=selected_hour, minute=0)
+        dt_str = dt.format("YYYY-MM-DDTHH:00")
+        index = None
+        for i, t in enumerate(time):
+            if t == dt_str:
+                index = i
+                break
+
+        if index is not None:
+            st.metric(
+                label=time[index][11:16],
+                value=f"{temp[index]} °C"
+            )
+        else:
+            st.warning("No data for selected time")
+        st.download_button(
+            label="Download Weather Forecast",
+            data=df_weather.to_csv(index=False),
+            file_name=f"Weather Forecast for {city_data['city']}.csv",
+            mime="text/csv",
+        )
 
 
 
-if __name__ == "__main__":
-    get_city('Warsaw')
-    print_weather_info(51.0, 13.40)
+
+
+
+#if __name__ == "__main__":
+   # get_city('Warsaw')
+  #  time, temp = print_weather_info(51.0, 13.40)
 

@@ -11,14 +11,14 @@ def print_weather_info(lat, long):
         "latitude": lat,
         "longitude": long,
         "hourly": "temperature_2m",
-        "hourly_units": "temperature_2m"
+
 
     }
     response = requests.get(url, params=params)
     another_dict = json.loads(response.text)
-    second_element = another_dict["hourly"]
-    third_element = another_dict["hourly_units"]
-    return(second_element, third_element)
+    second_element = another_dict["hourly"]["time"]
+    third_element = another_dict["hourly"]["temperature_2m"]
+    return second_element, third_element
 
 
 def get_city(city):
@@ -35,7 +35,6 @@ def get_city(city):
     conn.close()
     data_frame = pd.DataFrame(results, columns=["city", "lat", "lng", "country", "iso3"])
     return data_frame
-def get_weather():
     
 
 
