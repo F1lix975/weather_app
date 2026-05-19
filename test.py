@@ -6,6 +6,7 @@ import streamlit as st
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 import arrow
 from datetime import datetime
+from datetime import date, timedelta
 
 st.title("Weather Forecast")
 def get_city(city):
@@ -20,14 +21,15 @@ def get_city(city):
     cursor.execute(query, (city,))
     results = cursor.fetchall()
     conn.close()
-    data_frame = pd.DataFrame(results, columns=["city", "lat", "lng", "country", "iso3"])
+    data_frame = pd.DataFrame(results, columns=["city", "lat", "lng", "country", "country_code"])
     return data_frame
 def print_weather_info(lat, lng):
     url = "https://api.open-meteo.com/v1/forecast"
     params = {
         "latitude": lat,
         "longitude": lng,
-        "hourly": "temperature_2m",
+        "hourly": "temperature_2m,relative_humidity_2m,precipitation_probability,surface_pressure,visibility,wind_speed_10m,uv_index,cloudcover",
+        "timezone": "auto"
 
 
     }
@@ -35,10 +37,18 @@ def print_weather_info(lat, lng):
     another_dict = json.loads(response.text)
     second_element = another_dict["hourly"]["time"]
     third_element = another_dict["hourly"]["temperature_2m"]
-    return second_element, third_element
+    humidity = another_dict["hourly"]["relative_humidity_2m"]
+    precip = another_dict["hourly"]["precipitation_probability"]
+    pressure = another_dict["hourly"]["surface_pressure"]
+    vis = [v / 1000 for v in another_dict["hourly"]["visibility"]]
+    wind = another_dict["hourly"]["wind_speed_10m"]
+    uv = another_dict["hourly"]["uv_index"]
+    cloud = another_dict["hourly"]["cloudcover"]
+
+    return second_element, third_element, humidity, precip, pressure, vis, wind, uv, cloud
 #if __name__ == "__main__":
   #  get_city('Warsaw')
- #     time, temp = print_weather_info(lat, lng)
+ #     time, temp, humidity = print_weather_info(lat, lng)
 
 city = st.text_input("Write your city here")
 if city:
@@ -49,12 +59,13 @@ if city:
     gb = GridOptionsBuilder.from_dataframe(df)
     gb.configure_selection("single", use_checkbox=True)
     grid_options = gb.build()
-
     response = AgGrid(
         df,
         gridOptions=grid_options,
         update_mode=GridUpdateMode.SELECTION_CHANGED,
-        key="city_grid"
+        key=f"city_grid{city}",
+        theme="alpine-dark"
+
 
     )
 
@@ -64,13 +75,20 @@ if city:
         city_data = selected_rows.iloc[0]
         lat = city_data["lat"]
         long = city_data["lng"]
-        time, temp = print_weather_info(lat, long)
+        time, temp, humidity, precip, pressure, vis, wind, uv, cloud = print_weather_info(lat, long)
         df_weather = pd.DataFrame({
             "time": time,
-            "temperature": temp
+            "temperature": temp,
+            "humidity": humidity,
+            "precipitation": precip,
+            "pressure": pressure,
+            "visibility": vis,
+            "wind_speed": wind,
+            "UV_Index": uv,
+            "CloudCover": cloud
         })
-        st.subheader(f"Weather Forecast for {city_data['city']}")
-        now_hour = datetime.utcnow().replace(minute=0, second=0, microsecond=0)
+        st.subheader(f"Weather Forecast for {city_data['city']} (next 5 hours)")
+        now_hour = datetime.now().replace(minute=0, second=0, microsecond=0)
 
         start_index = 0
 
@@ -90,9 +108,20 @@ if city:
                 with col:
                     st.metric(
                         label=time[idx][11:16],
-                        value=f"{temp[idx]} °C"
+                        value=f"{temp[idx]} °C",
+                        delta=f"💧 {humidity[idx]}% | 🌧️ {precip[idx]}%"
                     )
-        selected_date = st.date_input("Choose date")
+                    st.caption(
+                        f"🌬️ {pressure[idx]} hPa  \n👁️ {vis[idx]:.1f} km  \n💨 {wind[idx]} km/h  \n☀️ {uv[idx]}  \n☁️ {cloud[idx]}%"
+                    )
+
+        min_date = date.today()
+        max_date = date.today() + timedelta(days=6)
+        selected_date = st.date_input(
+            "Choose date",
+            min_value = min_date,
+            max_value = max_date
+        )
         selected_hour = st.selectbox("Choose hour", list(range(24)))
         dt = arrow.get(selected_date).replace(hour=selected_hour, minute=0)
         dt_str = dt.format("YYYY-MM-DDTHH:00")
@@ -103,12 +132,24 @@ if city:
                 break
 
         if index is not None:
-            st.metric(
-                label=time[index][11:16],
-                value=f"{temp[index]} °C"
-            )
-        else:
-            st.warning("No data for selected time")
+            st.subheader(f"Weather Forecast for next 5 hours\n(that day and hours you choose)")
+            colss = st.columns(5)
+            for j in range(5):
+                next_index = index + j
+                if next_index < len(time):
+                    with colss[j]:
+                        api_time = datetime.strptime(
+                            time[next_index],
+                            "%Y-%m-%dT%H:%M"
+                        )
+                        st.metric(
+                            label=api_time.strftime("%H:%M"),
+                            value=f"{temp[next_index]} °C",
+                            delta=f"💧 {humidity[next_index]}% | 🌧️ {precip[next_index]}% "
+                            )
+                        st.caption(
+                            f"🌬️ {pressure[next_index]} hPa  \n👁️ {vis[next_index]:.1f} km  \n💨 {wind[next_index]} km/h  \n☀️ {uv[next_index]}  \n☁️ {cloud[next_index]}%"
+                        )
         st.download_button(
             label="Download Weather Forecast",
             data=df_weather.to_csv(index=False),

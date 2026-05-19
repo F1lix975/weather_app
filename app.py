@@ -10,7 +10,23 @@ def print_weather_info(lat, long):
     params = {
         "latitude": lat,
         "longitude": long,
-        "hourly": "temperature_2m",
+        "hourly": [ "temperature_2m",
+                    "relative_humidity_2m",
+                    "visibility",
+                    "surface_pressure",
+                    "dew_point_2m",
+                    "uv_index",
+                    "snowfall",
+                    "rain",
+                    "precipitation_probability"
+
+        ],
+        "timezone": "auto"
+
+
+
+
+
 
 
     }
@@ -18,7 +34,17 @@ def print_weather_info(lat, long):
     another_dict = json.loads(response.text)
     second_element = another_dict["hourly"]["time"]
     third_element = another_dict["hourly"]["temperature_2m"]
-    return second_element, third_element
+    fourth_element = another_dict["hourly"]["relative_humidity_2m"]
+    fifth_element = another_dict["hourly"]["visibility"]
+    sixth_element = another_dict["hourly"]["surface_pressure"]
+    seventh_element = another_dict["hourly"]["dew_point_2m"]
+    eighth_element = another_dict["hourly"]["uv_index"]
+    nineth_element = another_dict["hourly"]["snowfall"]
+    tenth_element = another_dict["hourly"]["rain"]
+    eleventh_element = another_dict["hourly"]["precipitation_probability"]
+
+    #print(another_dict["hourly"].keys())
+    print(second_element, third_element, fourth_element, fifth_element, sixth_element, seventh_element, eighth_element, nineth_element, tenth_element, eleventh_element)
 
 
 def get_city(city):
