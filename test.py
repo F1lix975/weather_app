@@ -9,7 +9,7 @@ from datetime import datetime
 from datetime import date, timedelta
 
 st.title("Weather Forecast")
-def get_city(city):gi
+def get_city(city):
     """
     Fuction can return every example of a city, which user would write.
     :param city:
