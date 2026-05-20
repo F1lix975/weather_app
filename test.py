@@ -208,7 +208,8 @@ if city:
         st.dataframe(
             filtered_info,
             use_container_width=True,
-            key = f"country_info_{selected_country}"
+            key = f"country_info_{selected_country}",
+            hide_index=True
         )
 
 
