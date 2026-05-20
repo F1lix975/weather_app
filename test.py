@@ -1,5 +1,4 @@
 import requests
-import json
 import sqlite3
 import pandas as pd
 import streamlit as st
@@ -54,7 +53,7 @@ def print_weather_info(lat, lng):
     try:
         response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()
-        another_dict = json.loads(response.text)
+        another_dict = response.json()
         second_element = another_dict["hourly"]["time"]
         third_element = another_dict["hourly"]["temperature_2m"]
         humidity = another_dict["hourly"]["relative_humidity_2m"]
