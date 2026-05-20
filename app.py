@@ -45,7 +45,7 @@ def print_weather_info(lat, long):
 
     #print(another_dict["hourly"].keys())
     print(second_element, third_element, fourth_element, fifth_element, sixth_element, seventh_element, eighth_element, nineth_element, tenth_element, eleventh_element)
-
+    print(response.status_code)
 
 def get_city(city):
     """
@@ -61,7 +61,27 @@ def get_city(city):
     conn.close()
     data_frame = pd.DataFrame(results, columns=["city", "lat", "lng", "country", "iso3"])
     return data_frame
-    
+def get_info():
+    conn = sqlite3.connect("base.db")
+    cursor = conn.cursor()
+    query = """SELECT
+    informations.country_code,
+    informations.foundation_year,
+    informations.surface,
+    informations.language,
+    informations.currency,
+    informations.continent,
+    informations.capital,
+    simplemaps_worldcities_basic.country
+FROM informations
+INNER JOIN simplemaps_worldcities_basic
+ON informations.capital = simplemaps_worldcities_basic.city; """
+    cursor.execute(query)
+    results = cursor.fetchall()
+    conn.close()
+    data_frame = pd.DataFrame(results, columns=["country", "country_code", "foundation_year", "surface", "language", "currency", "continent", "capital"])
+    return data_frame
+
 
 
 
@@ -70,6 +90,7 @@ def get_city(city):
 if __name__ == "__main__":
     get_city('Warsaw')
     weather = print_weather_info(51.0 , 13.40)
+    get_info()
 
 
 #def get_geo_cords(name, countryCode):

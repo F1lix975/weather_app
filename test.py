@@ -17,12 +17,30 @@ def get_city(city):
     """
     conn = sqlite3.connect("base.db")
     cursor = conn.cursor()
-    query = """SELECT city, lat, lng, country, iso3 FROM simplemaps_worldcities_basic WHERE upper(city) LIKE upper('%' ||?||'%')"""
+    query = """SELECT city, lat, lng, country, iso2 FROM simplemaps_worldcities_basic WHERE upper(city) LIKE upper('%' ||?||'%')"""
     cursor.execute(query, (city,))
     results = cursor.fetchall()
     conn.close()
     data_frame = pd.DataFrame(results, columns=["city", "lat", "lng", "country", "country_code"])
     return data_frame
+def get_info():
+    conn = sqlite3.connect("base.db")
+    cursor = conn.cursor()
+    query = """SELECT
+        country_code,
+        foundation_year,
+        surface,
+        language,
+        currency,
+        continent,
+        capital
+    FROM informations"""
+    cursor.execute(query)
+    results = cursor.fetchall()
+    conn.close()
+    data_frame = pd.DataFrame(results, columns=["country_code", "foundation_year", "surface", "language", "currency", "continent", "capital"])
+    return data_frame
+
 def print_weather_info(lat, lng):
     url = "https://api.open-meteo.com/v1/forecast"
     params = {
@@ -33,19 +51,36 @@ def print_weather_info(lat, lng):
 
 
     }
-    response = requests.get(url, params=params)
-    another_dict = json.loads(response.text)
-    second_element = another_dict["hourly"]["time"]
-    third_element = another_dict["hourly"]["temperature_2m"]
-    humidity = another_dict["hourly"]["relative_humidity_2m"]
-    precip = another_dict["hourly"]["precipitation_probability"]
-    pressure = another_dict["hourly"]["surface_pressure"]
-    vis = [v / 1000 for v in another_dict["hourly"]["visibility"]]
-    wind = another_dict["hourly"]["wind_speed_10m"]
-    uv = another_dict["hourly"]["uv_index"]
-    cloud = another_dict["hourly"]["cloudcover"]
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        another_dict = json.loads(response.text)
+        second_element = another_dict["hourly"]["time"]
+        third_element = another_dict["hourly"]["temperature_2m"]
+        humidity = another_dict["hourly"]["relative_humidity_2m"]
+        precip = another_dict["hourly"]["precipitation_probability"]
+        pressure = another_dict["hourly"]["surface_pressure"]
+        vis = [v / 1000 for v in another_dict["hourly"]["visibility"]]
+        wind = another_dict["hourly"]["wind_speed_10m"]
+        uv = another_dict["hourly"]["uv_index"]
+        cloud = another_dict["hourly"]["cloudcover"]
 
-    return second_element, third_element, humidity, precip, pressure, vis, wind, uv, cloud
+        return second_element, third_element, humidity, precip, pressure, vis, wind, uv, cloud
+    except requests.exceptions.Timeout:
+        st.error(
+            "Request timeout. API did not respond in time"
+        )
+        return None
+    except requests.exceptions.ConnectionError as error:
+        st.error(f"Connection error: {error}")
+        return None
+    except requests.exceptions.HTTPError as error:
+        st.error(f"HTTP error: {error}")
+        return None
+    except Exception as error:
+        st.error(f"Unknown error: {error}")
+        return None
+    
 #if __name__ == "__main__":
   #  get_city('Warsaw')
  #     time, temp, humidity = print_weather_info(lat, lng)
@@ -63,8 +98,8 @@ if city:
         df,
         gridOptions=grid_options,
         update_mode=GridUpdateMode.SELECTION_CHANGED,
-        key=f"city_grid{city}",
-        theme="alpine-dark"
+        key=f"city_grid{city}"
+
 
 
     )
@@ -155,6 +190,25 @@ if city:
             data=df_weather.to_csv(index=False),
             file_name=f"Weather Forecast for {city_data['city']}.csv",
             mime="text/csv",
+        )
+        info_df = get_info()
+
+        selected_country = str(
+            city_data["country_code"]
+        ).strip().upper()
+
+        filtered_info = info_df[
+            info_df["country_code"]
+            .str.strip()
+            .str.upper() == selected_country
+            ]
+
+        st.subheader("Country Information")
+
+        st.dataframe(
+            filtered_info,
+            use_container_width=True,
+            key = f"country_info_{selected_country}"
         )
 
 
