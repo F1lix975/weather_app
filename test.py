@@ -38,7 +38,7 @@ def get_info():
     cursor.execute(query)
     results = cursor.fetchall()
     conn.close()
-    data_frame = pd.DataFrame(results, columns=["country_code", "foundation_year", "surface", "language", "currency", "continent", "capital"])
+    data_frame = pd.DataFrame(results, columns=["country_code", "foundation_year", "surface (km²)", "language", "currency", "continent", "capital"])
     return data_frame
 
 def print_weather_info(lat, lng):
