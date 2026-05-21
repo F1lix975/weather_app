@@ -6,6 +6,9 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 import arrow
 from datetime import datetime
 from datetime import date, timedelta
+import time
+
+
 
 st.title("Weather Forecast")
 
@@ -49,38 +52,60 @@ def print_weather_info(lat, lng):
     params = {
         "latitude": lat,
         "longitude": lng,
-        "hourly": "temperature_2m,relative_humidity_2m,precipitation_probability,surface_pressure,visibility,wind_speed_10m,uv_index,cloudcover",
-        "timezone": "auto"
+        "hourly": "temperature_2m,relative_humidity_2m,precipitation_probability,surface_pressure,visibility,wind_speed_10m,uv_index,cloud_cover",
+        "timezone": "auto",
+        "daily": "sunrise,sunset"
 
     }
-    try:
-        response = requests.get(url, params=params, timeout=10)
-        response.raise_for_status()
-        another_dict = response.json()
-        second_element = another_dict["hourly"]["time"]
-        third_element = another_dict["hourly"]["temperature_2m"]
-        humidity = another_dict["hourly"]["relative_humidity_2m"]
-        precip = another_dict["hourly"]["precipitation_probability"]
-        pressure = another_dict["hourly"]["surface_pressure"]
-        vis = [v / 1000 for v in another_dict["hourly"]["visibility"]]
-        wind = another_dict["hourly"]["wind_speed_10m"]
-        uv = another_dict["hourly"]["uv_index"]
-        cloud = another_dict["hourly"]["cloudcover"]
+    for attempt in range(3):
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            another_dict = response.json()
+            #second_element = another_dict["hourly"]["time"]
+            #third_element = another_dict["hourly"]["temperature_2m"]
+            #humidity = another_dict["hourly"]["relative_humidity_2m"]
+            #precip = another_dict["hourly"]["precipitation_probability"]
+            #pressure = another_dict["hourly"]["surface_pressure"]
+            #vis = [v / 1000 for v in another_dict["hourly"]["visibility"]]
+            #wind = another_dict["hourly"]["wind_speed_10m"]
+            #uv = another_dict["hourly"]["uv_index"]
+            #cloud = another_dict["hourly"]["cloudcover"]
 
-        return second_element, third_element, humidity, precip, pressure, vis, wind, uv, cloud
-    except requests.exceptions.Timeout:
-        st.error(
-            "Request timeout. API did not respond in time"
-        )
-        return None
-    except requests.exceptions.ConnectionError as error:
-        st.error(f"Connection error: {error}")
-        return None
-    except requests.exceptions.HTTPError as error:
-        st.error(f"HTTP error: {error}")
-        return None
-    except Exception as error:
-        st.error(f"Unknown error: {error}")
+            return {
+                "time": another_dict["hourly"]["time"],
+                "temperature": another_dict["hourly"]["temperature_2m"],
+                "humidity": another_dict["hourly"]["relative_humidity_2m"],
+                "precipitation": another_dict["hourly"]["precipitation_probability"],
+                "pressure": another_dict["hourly"]["surface_pressure"],
+                "visibility": [value / 1000 for value in another_dict["hourly"]["visibility"]],
+                "wind_speed": another_dict["hourly"]["wind_speed_10m"],
+                "uv_index": another_dict["hourly"]["uv_index"],
+                "cloud_cover": another_dict["hourly"]["cloud_cover"],
+                "sunrise": another_dict["daily"]["sunrise"],
+                "sunset": another_dict["daily"]["sunset"],
+
+            }
+
+
+        except requests.exceptions.Timeout:
+            st.warning(
+                f"Request timeout. API did not respond in time. Retry {attempt + 1}"
+            )
+            time.sleep(2)
+        except requests.exceptions.ConnectionError:
+            st.warning(f"Connection error. Retry {attempt + 1}")
+            time.sleep(2)
+        except requests.exceptions.HTTPError as error:
+            st.error(f"HTTP error: {error}")
+            return None
+        except requests.exceptions.RequestException as error:
+            st.error(f"Request error: {error}")
+            return None
+        except Exception as error:
+            st.error(f"Unknown error: {error}")
+            return None
+        st.error("API unavailable after multiple retries")
         return None
 
 
@@ -109,26 +134,52 @@ if city:
     if selected_rows is not None and len(selected_rows) > 0:
 
         city_data = selected_rows.iloc[0]
+
         lat = city_data["lat"]
         long = city_data["lng"]
-        time, temp, humidity, precip, pressure, vis, wind, uv, cloud = print_weather_info(lat, long)
+        another_dict = print_weather_info(lat, long)
+        if not another_dict:
+            st.warning("No results found")
+            st.stop()
+        time_data = another_dict["time"]
+
+        temp = another_dict["temperature"]
+
+        humidity = another_dict["humidity"]
+
+        precip = another_dict["precipitation"]
+
+        pressure = another_dict["pressure"]
+
+        vis = another_dict["visibility"]
+
+        wind = another_dict["wind_speed"]
+
+        uv = another_dict["uv_index"]
+
+        cloud = another_dict["cloud_cover"]
+        sunrise = another_dict["sunrise"]
+
+        sunset = another_dict["sunset"]
+        st.subheader("🗺️ Weather Map")
+
         df_weather = pd.DataFrame({
-            "time": time,
+            "time": time_data,
             "temperature": temp,
             "humidity": humidity,
             "precipitation": precip,
             "pressure": pressure,
             "visibility": vis,
             "wind_speed": wind,
-            "UV_Index": uv,
-            "CloudCover": cloud
+            "uv_index": uv,
+            "cloud_cover": cloud
         })
         st.subheader(f"Weather Forecast for {city_data['city']} (next 5 hours)")
         now_hour = datetime.now().replace(minute=0, second=0, microsecond=0)
 
         start_index = 0
 
-        for i, t in enumerate(time):
+        for i, t in enumerate(time_data):
             api_time = datetime.strptime(t, "%Y-%m-%dT%H:%M")
 
             if api_time >= now_hour:
@@ -140,17 +191,33 @@ if city:
         for i, col in enumerate(cols):
             idx = start_index + i
 
-            if idx < len(time):
+            if idx < len(time_data):
                 with col:
                     st.metric(
-                        label=time[idx][11:16],
+                        label=time_data[idx][11:16],
                         value=f"{temp[idx]} °C",
                         delta=f"💧 {humidity[idx]}% | 🌧️ {precip[idx]}%"
                     )
                     st.caption(
                         f"🌬️ {pressure[idx]} hPa  \n👁️ {vis[idx]:.1f} km  \n💨 {wind[idx]} km/h  \n☀️ {uv[idx]}  \n☁️ {cloud[idx]}%"
                     )
+        st.subheader("🌞 Sun Information")
 
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            st.metric(
+                "🌅 Sunrise",
+                sunrise[0][11:16]
+            )
+
+        with col2:
+
+            st.metric(
+                "🌇 Sunset",
+                sunset[0][11:16]
+            )
         min_date = date.today()
         max_date = date.today() + timedelta(days=6)
         selected_date = st.date_input(
@@ -159,23 +226,23 @@ if city:
             max_value=max_date
         )
         selected_hour = st.selectbox("Choose hour", list(range(24)))
+
         dt = arrow.get(selected_date).replace(hour=selected_hour, minute=0)
         dt_str = dt.format("YYYY-MM-DDTHH:00")
         index = None
-        for i, t in enumerate(time):
+        for i, t in enumerate(time_data):
             if t == dt_str:
                 index = i
                 break
-
         if index is not None:
             st.subheader(f"Weather Forecast for next 5 hours\n(that day and hours you choose)")
             colss = st.columns(5)
             for j in range(5):
                 next_index = index + j
-                if next_index < len(time):
+                if next_index < len(time_data):
                     with colss[j]:
                         api_time = datetime.strptime(
-                            time[next_index],
+                            time_data[next_index],
                             "%Y-%m-%dT%H:%M"
                         )
                         st.metric(
@@ -186,6 +253,30 @@ if city:
                         st.caption(
                             f"🌬️ {pressure[next_index]} hPa  \n👁️ {vis[next_index]:.1f} km  \n💨 {wind[next_index]} km/h  \n☀️ {uv[next_index]}  \n☁️ {cloud[next_index]}%"
                         )
+        selected_date_str = selected_date.strftime("%Y-%m-%d")
+        sun_index = None
+        for i, t in enumerate(sunrise):
+            if t.startswith(selected_date_str):
+                sun_index = i
+                break
+        if sun_index is not None:
+            st.subheader("🌞 Sun Information\npip install streamlit-geolocation(that day you choose)")
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+
+                st.metric(
+                    "🌅 Sunrise",
+                    sunrise[sun_index][11:16]
+                )
+
+            with col2:
+
+                st.metric(
+                    "🌇 Sunset",
+                    sunset[sun_index][11:16]
+                )
         st.download_button(
             label="Download Weather Forecast",
             data=df_weather.to_csv(index=False),
