@@ -161,7 +161,7 @@ if city:
         sunrise = another_dict["sunrise"]
 
         sunset = another_dict["sunset"]
-        st.subheader("🗺️ Weather Map")
+        
 
         df_weather = pd.DataFrame({
             "time": time_data,
